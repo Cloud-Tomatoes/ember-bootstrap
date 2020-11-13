@@ -70,11 +70,11 @@ export default class Modal extends Component {
    *
    * @property open
    * @type boolean
-   * @default true
+   * @default false
    * @public
    */
   @defaultValue
-  open = true;
+  open = false;
 
   /**
    * @property isOpen
