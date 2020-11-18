@@ -1,18 +1,11 @@
-<div class="custom-control custom-checkbox mr-n3">
-  <input
-    type="checkbox"
-    id={{@id}}
-    disabled={{this.disabled}}
-    readonly={{this.readonly}}
-    aria-describedby={{this.ariaDescribedBy}}
-    checked={{this.value}}
-    class={{cx
-      "custom-control-input"
-      (if (macroCondition (macroGetOwnConfig "isBS4")) "form-check-input")
-      (if (macroCondition (macroGetOwnConfig "isBS4")) this.formValidationClass)
-    }}
-    ...attributes
-    {{on "click" this.handleClick}}
-  />
-  <label class="custom-control-label" for={{@id}}></label>
-</div>
+<input
+  type="checkbox"
+  id={{@id}}
+  disabled={{this.disabled}}
+  readonly={{this.readonly}}
+  aria-describedby={{this.ariaDescribedBy}}
+  checked={{this.value}}
+  class="{{if (macroCondition (macroGetOwnConfig "isBS4")) "form-check-input"}} {{if (macroCondition (macroGetOwnConfig "isBS4")) this.formValidationClass}}"
+  ...attributes
+  {{on "click" this.handleClick}}
+>
