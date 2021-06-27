@@ -7,7 +7,7 @@ import {
   isVisible,
   openClass,
   test,
-  testBS4,
+  testNotBS3,
 } from '../../helpers/bootstrap';
 import hbs from 'htmlbars-inline-precompile';
 import setupNoDeprecations from '../../helpers/setup-no-deprecations';
@@ -35,13 +35,13 @@ module('Integration | Component | bs-dropdown', function (hooks) {
     assert.dom('.dropup').exists('has dropup class');
   });
 
-  testBS4('dropdown container supports dropright style', async function (assert) {
+  testNotBS3('dropdown container supports dropright style', async function (assert) {
     await render(hbs`<BsDropdown @direction="right">Test</BsDropdown>`);
 
     assert.dom('.dropright').exists('has dropright class');
   });
 
-  testBS4('dropdown container supports dropleft style', async function (assert) {
+  testNotBS3('dropdown container supports dropleft style', async function (assert) {
     await render(hbs`<BsDropdown @direction="left">Test</BsDropdown>`);
 
     assert.dom('.dropleft').exists('has dropleft class');
@@ -144,7 +144,7 @@ module('Integration | Component | bs-dropdown', function (hooks) {
         <dd.toggle>Dropdown <span class="caret"></span></dd.toggle>
         <dd.menu><li><a href="#">Something</a></li></dd.menu>
       </BsDropdown>
-      <div id="target" role="button" onclick={{action stopEvent}} />
+      <div id="target" role="button" onclick={{action this.stopEvent}} />
     `);
 
     await click('a.dropdown-toggle');
@@ -321,7 +321,7 @@ module('Integration | Component | bs-dropdown', function (hooks) {
       <dd.toggle>Dropdown</dd.toggle>
       <dd.menu as |menu|>
         <menu.item>
-          {{menu.link-to "Home" "index"}}
+          <menu.link-to @route="index">Home</menu.link-to>
         </menu.item>
       </dd.menu>
     </BsDropdown>`);

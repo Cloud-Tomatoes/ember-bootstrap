@@ -1,6 +1,6 @@
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { render, click, settled } from '@ember/test-helpers';
+import { click, render, settled } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 import setupNoDeprecations from '../../helpers/setup-no-deprecations';
 import a11yAudit from 'ember-a11y-testing/test-support/audit';
@@ -132,7 +132,7 @@ module('Integration | Component | bs-tab', function (hooks) {
   test('activeId activates tabs', async function (assert) {
     this.set('paneId', 'pane1');
     await render(hbs`
-      <BsTab @fade={{false}} @activeId={{paneId}} as |tab|>
+      <BsTab @fade={{false}} @activeId={{this.paneId}} as |tab|>
         <tab.pane @id="pane1" @title="Tab 1">
           tabcontent 1
         </tab.pane>
@@ -171,7 +171,7 @@ module('Integration | Component | bs-tab', function (hooks) {
   test('activeId activates tabs [fade]', async function (assert) {
     this.set('paneId', 'pane1');
     await render(hbs`
-      <BsTab @fade={{true}} @activeId={{paneId}} as |tab|>
+      <BsTab @fade={{true}} @activeId={{this.paneId}} as |tab|>
         <tab.pane @id="pane1" @title="Tab 1">
           tabcontent 1
         </tab.pane>
@@ -309,7 +309,7 @@ module('Integration | Component | bs-tab', function (hooks) {
   test('changing active tab does not change public activeId property (DDAU)', async function (assert) {
     this.set('paneId', 'pane1');
     await render(hbs`
-      <BsTab @fade={{false}} @activeId={{paneId}} as |tab|>
+      <BsTab @fade={{false}} @activeId={{this.paneId}} as |tab|>
         <tab.pane @id="pane1" @title="Tab 1">
           tabcontent 1
         </tab.pane>
@@ -341,6 +341,9 @@ module('Integration | Component | bs-tab', function (hooks) {
         // disabling the rule for now, but may be revisited!
         listitem: { enabled: false },
         'color-contrast': { enabled: false },
+        // @todo https://github.com/kaliber5/ember-bootstrap/issues/1521
+        'aria-required-parent': { enabled: false },
+        'aria-required-children': { enabled: false },
       },
     });
     assert.ok(true, 'A11y audit passed');

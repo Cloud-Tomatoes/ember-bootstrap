@@ -1,58 +1,46 @@
-import { tagName } from '@ember-decorators/component';
-import Component from '@ember/component';
-import defaultValue from 'ember-bootstrap/utils/default-decorator';
-import deprecateSubclassing from 'ember-bootstrap/utils/deprecate-subclassing';
-
 /**
 
  Modal header element used within [Components.Modal](Components.Modal.html) components. See there for examples.
 
  @class ModalHeader
  @namespace Components
- @extends Ember.Component
+ @extends Glimmer.Component
  @public
  */
-@tagName('')
-@deprecateSubclassing
-export default class ModalHeader extends Component {
-  /**
-   * Show a close button (x icon)
-   *
-   * @property closeButton
-   * @type boolean
-   * @default true
-   * @public
-   */
-  @defaultValue
-  closeButton = true;
 
-  /**
-   * The title to display in the modal header
-   *
-   * @property title
-   * @type string
-   * @default null
-   * @public
-   */
+/**
+ * Show a close button (x icon)
+ *
+ * @property closeButton
+ * @type boolean
+ * @default true
+ * @public
+ */
 
-  /**
-   * @property titleComponent
-   * @type {String}
-   * @private
-   */
-  @defaultValue
-  titleComponent = 'bs-modal/header/title';
+/**
+ * The title to display in the modal header
+ *
+ * @property title
+ * @type string
+ * @default null
+ * @public
+ */
 
-  /**
-   * @property closeComponent
-   * @type {String}
-   * @private
-   */
-  @defaultValue
-  closeComponent = 'bs-modal/header/close';
+/**
+ * @property titleComponent
+ * @type {String}
+ * @private
+ */
 
-  /**
-   * @event onClose
-   * @public
-   */
-}
+/**
+ * @property closeComponent
+ * @type {String}
+ * @private
+ */
+
+/**
+ * @event onClose
+ * @public
+ */
+import templateOnly from '@ember/component/template-only';
+export default templateOnly();

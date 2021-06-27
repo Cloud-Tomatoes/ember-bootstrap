@@ -1,17 +1,16 @@
 import Component from '@glimmer/component';
-import { guidFor } from '@ember/object/internals';
 import { isArray } from '@ember/array';
 import { action } from '@ember/object';
 import { cancel, later, next, schedule } from '@ember/runloop';
 import transitionEnd from 'ember-bootstrap/utils/transition-end';
 import { getDestinationElement } from 'ember-bootstrap/utils/dom';
 import usesTransition from 'ember-bootstrap/utils/decorators/uses-transition';
-import { assert } from '@ember/debug';
+import { assert, deprecate } from '@ember/debug';
 import Ember from 'ember';
-import { deprecate } from '@ember/application/deprecations';
 import arg from '../utils/decorators/arg';
 import { tracked } from '@glimmer/tracking';
 import { getParentView } from '../utils/dom';
+import { ref } from 'ember-ref-bucket';
 
 const HOVERSTATE_NONE = 'none';
 const HOVERSTATE_IN = 'in';
@@ -180,16 +179,6 @@ export default class ContextualHelp extends Component {
   viewportPadding = 0;
 
   _parentFinder = self.document ? self.document.createTextNode('') : '';
-
-  /**
-   * The id of the overlay element.
-   *
-   * @property overlayId
-   * @type string
-   * @readonly
-   * @private
-   */
-  overlayId = `overlay-${guidFor(this)}`;
 
   /**
    * The DOM element of the arrow element.
@@ -361,9 +350,7 @@ export default class ContextualHelp extends Component {
    * @readonly
    * @private
    */
-  get overlayElement() {
-    return document.getElementById(this.overlayId);
-  }
+  @ref('overlayElement') overlayElement;
 
   /**
    * This action is called immediately when the tooltip/popover is about to be shown.
@@ -690,11 +677,16 @@ export default class ContextualHelp extends Component {
       }
     }
     this._parent = parent;
-    this.triggerTargetElement = this.getTriggerTargetElement();
-    this.addListeners();
-    if (this.visible) {
-      next(this, this.show, true);
-    }
+
+    // Look for target element after rendering has finished, in case the target DOM element is rendered *after* us
+    // see https://github.com/kaliber5/ember-bootstrap/issues/1329
+    schedule('afterRender', () => {
+      this.triggerTargetElement = this.getTriggerTargetElement();
+      this.addListeners();
+      if (this.visible) {
+        next(this, this.show, true);
+      }
+    });
   }
 
   @action
@@ -706,8 +698,8 @@ export default class ContextualHelp extends Component {
     }
   }
 
-  willDestroyElement() {
-    super.willDestroyElement(...arguments);
+  willDestroy() {
+    super.willDestroy(...arguments);
     this.removeListeners();
   }
 }

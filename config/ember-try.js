@@ -1,7 +1,7 @@
 'use strict';
 
 const getChannelURL = require('ember-source-channel-url');
-const bootstrapVersion = process.env.BOOTSTRAPVERSION === '3' ? '^3.4.1' : '^4.3.1';
+const bootstrapVersion = `^${process.env.BOOTSTRAPVERSION}.0.0`;
 const { embroiderSafe, embroiderOptimized } = require('@embroider/test-setup');
 
 module.exports = async function () {
@@ -13,6 +13,15 @@ module.exports = async function () {
         npm: {
           devDependencies: {
             'ember-source': '~3.16.0',
+            bootstrap: bootstrapVersion,
+          },
+        },
+      },
+      {
+        name: 'ember-lts-3.20',
+        npm: {
+          devDependencies: {
+            'ember-source': '~3.20.5',
             bootstrap: bootstrapVersion,
           },
         },
@@ -50,18 +59,6 @@ module.exports = async function () {
           // FAIL_ON_DEPRECATION: true,
         },
       },
-      // The default `.travis.yml` runs this scenario via `npm test`,
-      // not via `ember try`. It's still included here so that running
-      // `ember try:each` manually or from a customized CI config will run it
-      // along with all the other scenarios.
-      {
-        name: 'ember-default',
-        npm: {
-          devDependencies: {
-            bootstrap: bootstrapVersion,
-          },
-        },
-      },
       {
         name: 'ember-default-with-jquery',
         env: {
@@ -71,7 +68,7 @@ module.exports = async function () {
         },
         npm: {
           devDependencies: {
-            '@ember/jquery': '^0.5.1',
+            '@ember/jquery': '^1.1.0',
             bootstrap: bootstrapVersion,
           },
         },
@@ -102,7 +99,7 @@ module.exports = async function () {
       {
         name: 'ember-concurrency-2.x',
         npm: {
-          dependencies: {
+          devDependencies: {
             'ember-concurrency': '^2.0.0-beta.1',
             bootstrap: bootstrapVersion,
           },
@@ -115,10 +112,24 @@ module.exports = async function () {
         env: {
           FASTBOOT_DISABLED: true,
         },
+        npm: {
+          devDependencies: {
+            bootstrap: bootstrapVersion,
+            // @todo remove this once embroider 0.41.0 is released
+            webpack: '^5.0.0',
+          },
+        },
       }),
       embroiderOptimized({
         env: {
           FASTBOOT_DISABLED: true,
+        },
+        npm: {
+          devDependencies: {
+            bootstrap: bootstrapVersion,
+            // @todo remove this once embroider 0.41.0 is released
+            webpack: '^5.0.0',
+          },
         },
       }),
     ],

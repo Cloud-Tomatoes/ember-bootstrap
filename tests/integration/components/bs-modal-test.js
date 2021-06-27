@@ -1,11 +1,12 @@
 import Component from '@ember/component';
 import { module } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
-import { render, click, triggerEvent } from '@ember/test-helpers';
-import { test, visibilityClass } from '../../helpers/bootstrap';
+import { render, click, find, triggerEvent, settled, waitFor, waitUntil } from '@ember/test-helpers';
+import { test, testNotBS3, visibilityClass } from '../../helpers/bootstrap';
 import hbs from 'htmlbars-inline-precompile';
 import setupNoDeprecations from '../../helpers/setup-no-deprecations';
 import sinon from 'sinon';
+import { skipTransition } from 'ember-bootstrap/utils/transition-end';
 
 module('Integration | Component | bs-modal', function (hooks) {
   setupRenderingTest(hooks);
@@ -203,5 +204,113 @@ module('Integration | Component | bs-modal', function (hooks) {
 
     assert.dom('.modal-backdrop').exists({ count: 1 }, 'Modal has backdrop element');
     assert.dom('.modal-backdrop').hasClass(visibilityClass(), 'Modal backdrop has visibility class');
+  });
+
+  test('it can reopen after closing by clicking the backdrop', async function (assert) {
+    this.set('open', false);
+    this.set('close', () => this.set('open', false));
+    await render(hbs`<BsModal @open={{this.open}} @onHidden={{action this.close}}>Hello world!</BsModal>`);
+
+    assert.dom('.modal').doesNotExist('Modal is hidden');
+    this.set('open', true);
+    await settled();
+
+    assert.dom('.modal').hasClass(visibilityClass(), 'Modal is visible');
+    assert.dom('.modal').isVisible();
+
+    await click('.modal');
+    assert.dom('.modal').doesNotExist('Modal is hidden');
+
+    this.set('open', true);
+    await settled();
+
+    assert.dom('.modal').isVisible('Modal is visible again');
+  });
+
+  test('it can reopen after closing by setting the `open` state to false', async function (assert) {
+    this.set('open', false);
+    await render(hbs`<BsModal @open={{this.open}}>Hello world!</BsModal>`);
+
+    assert.dom('.modal').doesNotExist('Modal is hidden');
+    this.set('open', true);
+    await settled();
+
+    assert.dom('.modal').hasClass(visibilityClass(), 'Modal is visible');
+    assert.dom('.modal').isVisible();
+
+    this.set('open', false);
+    await settled();
+    assert.dom('.modal').doesNotExist('Modal is hidden');
+
+    this.set('open', true);
+    await settled();
+
+    assert.dom('.modal').isVisible('Modal is visible again');
+  });
+
+  module('it animates opening and closing the modal', function () {
+    hooks.before(function () {
+      skipTransition(false);
+    });
+
+    hooks.after(function () {
+      skipTransition(undefined);
+    });
+
+    testNotBS3('it animates opening the modal', async function (assert) {
+      this.set('open', false);
+      await render(hbs`<BsModal @open={{this.open}}>Hello world!</BsModal>`);
+
+      this.set('open', true);
+      await waitFor('.modal.show');
+      assert.dom('.modal').hasStyle({ display: 'block' });
+
+      await waitUntil(() => {
+        return find('.modal').getAnimations().length > 0;
+      });
+      assert.ok(
+        find('.modal')
+          .getAnimations()
+          .find((animation) => animation.transitionProperty === 'opacity'),
+        'modal opening is animated'
+      );
+    });
+
+    testNotBS3('it animates closing the modal', async function (assert) {
+      await render(hbs`
+        <BsModal as |modal|>
+          <button {{on "click" modal.close}} type="button">close</button>
+        </BsModal>
+      `);
+
+      // wait until modal is shown and opening transition is finished
+      await waitFor('.modal.show');
+      await Promise.all(
+        find('.modal')
+          .getAnimations()
+          .map((animation) => animation.finished)
+      );
+
+      // close modal
+      click('button');
+
+      await waitUntil(() => {
+        return !find('.modal').classList.contains(visibilityClass());
+      });
+      assert.dom('.modal').hasStyle({ display: 'block' });
+
+      await waitUntil(() => {
+        return find('.modal').getAnimations().length > 0;
+      });
+      assert.ok(
+        find('.modal')
+          .getAnimations()
+          .find((animation) => animation.transitionProperty === 'opacity'),
+        'modal closing is animated'
+      );
+
+      await settled();
+      assert.dom('.modal').doesNotExist();
+    });
   });
 });

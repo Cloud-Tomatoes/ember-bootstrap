@@ -1,18 +1,24 @@
-import { tagName } from '@ember-decorators/component';
 import { action, computed } from '@ember/object';
-import { addObserver } from '@ember/object/observers';
 import { assert } from '@ember/debug';
-import Component from '@ember/component';
-import { bind, next, schedule } from '@ember/runloop';
+import Component from '@glimmer/component';
+import { next, schedule } from '@ember/runloop';
 import { inject as service } from '@ember/service';
-import listenTo from 'ember-bootstrap/utils/cp/listen-to';
 import transitionEnd from 'ember-bootstrap/utils/transition-end';
 import { getDestinationElement } from 'ember-bootstrap/utils/dom';
-import { guidFor } from '@ember/object/internals';
-import usesTransition from 'ember-bootstrap/utils/cp/uses-transition';
+import usesTransition from 'ember-bootstrap/utils/decorators/uses-transition';
 import isFastBoot from 'ember-bootstrap/utils/is-fastboot';
-import defaultValue from 'ember-bootstrap/utils/default-decorator';
 import deprecateSubclassing from 'ember-bootstrap/utils/deprecate-subclassing';
+import arg from '../utils/decorators/arg';
+import { tracked } from '@glimmer/tracking';
+import { ref } from 'ember-ref-bucket';
+
+function nextRunloop() {
+  return new Promise((resolve) => next(resolve));
+}
+
+function afterRender() {
+  return new Promise((resolve) => schedule('afterRender', resolve));
+}
 
 /**
   Component for creating [Bootstrap modals](http://getbootstrap.com/javascript/#modals) with custom markup.
@@ -53,35 +59,13 @@ import deprecateSubclassing from 'ember-bootstrap/utils/deprecate-subclassing';
 
   @class Modal
   @namespace Components
-  @extends Ember.Component
+  @extends Glimmer.Component
   @public
 */
-@tagName('')
 @deprecateSubclassing
 export default class Modal extends Component {
   @service('-document')
   document;
-
-  /**
-   * Visibility of the modal. Toggle to show/hide with CSS transitions.
-   *
-   * When the modal is closed by user interaction this property will not update by using two-way bindings in order
-   * to follow DDAU best practices. If you want to react to such changes, subscribe to the `onHide` action
-   *
-   * @property open
-   * @type boolean
-   * @default true
-   * @public
-   */
-  @defaultValue
-  open = true;
-
-  /**
-   * @property isOpen
-   * @private
-   */
-  @listenTo('open')
-  isOpen;
 
   /**
    * @property _isOpen
@@ -97,12 +81,10 @@ export default class Modal extends Component {
    * @default true
    * @public
    */
-  @defaultValue
-  fade = undefined;
 
   get _fade() {
     let isFB = isFastBoot(this);
-    return this.fade === undefined ? !isFB : this.fade;
+    return this.args.fade === undefined ? !isFB : this.args.fade;
   }
 
   /**
@@ -113,8 +95,8 @@ export default class Modal extends Component {
    * @default false
    * @private
    */
-  @defaultValue
-  showModal = false;
+  @tracked
+  showModal = this.open && (!this._fade || isFastBoot(this));
 
   /**
    * Render modal markup?
@@ -124,22 +106,38 @@ export default class Modal extends Component {
    * @default false
    * @private
    */
-  @defaultValue
-  inDom = false;
+  @tracked
+  inDom = this.open;
 
   /**
    * @property paddingLeft
-   * @type number|null
+   * @type number|undefined
    * @private
    */
+  @tracked
   paddingLeft;
 
   /**
    * @property paddingRight
-   * @type number|null
+   * @type number|undefined
    * @private
    */
+  @tracked
   paddingRight;
+
+  /**
+   * Visibility of the modal. Toggle to show/hide with CSS transitions.
+   *
+   * When the modal is closed by user interaction this property will not update by using two-way bindings in order
+   * to follow DDAU best practices. If you want to react to such changes, subscribe to the `onHide` action
+   *
+   * @property open
+   * @type boolean
+   * @default true
+   * @public
+   */
+  @arg
+  open = true;
 
   /**
    * Use a semi-transparent modal background to hide the rest of the page.
@@ -149,17 +147,16 @@ export default class Modal extends Component {
    * @default true
    * @public
    */
-  @defaultValue
+  @arg
   backdrop = true;
 
   /**
-   * @property showBackdrop
+   * @property shouldShowBackdrop
    * @type boolean
-   * @default false
    * @private
    */
-  @defaultValue
-  showBackdrop = false;
+  @tracked
+  shouldShowBackdrop = this.open && this.backdrop;
 
   /**
    * Closes the modal when escape key is pressed.
@@ -169,7 +166,7 @@ export default class Modal extends Component {
    * @default true
    * @public
    */
-  @defaultValue
+  @arg
   keyboard = true;
 
   /**
@@ -181,7 +178,7 @@ export default class Modal extends Component {
    * @default 'top'
    * @public
    */
-  @defaultValue
+  @arg
   position = 'top';
 
   /**
@@ -193,7 +190,7 @@ export default class Modal extends Component {
    * @default false
    * @public
    */
-  @defaultValue
+  @arg
   scrollable = false;
 
   /**
@@ -221,32 +218,6 @@ export default class Modal extends Component {
    */
 
   /**
-   * The id of the `.modal` element.
-   *
-   * @property modalId
-   * @type string
-   * @readonly
-   * @private
-   */
-  @computed
-  get modalId() {
-    return `${guidFor(this)}-modal`;
-  }
-
-  /**
-   * The id of the backdrop element.
-   *
-   * @property backdropId
-   * @type string
-   * @readonly
-   * @private
-   */
-  @computed
-  get backdropId() {
-    return `${guidFor(this)}-backdrop`;
-  }
-
-  /**
    * Property for size styling, set to null (default), 'lg' or 'sm'
    *
    * Also see the [Bootstrap docs](http://getbootstrap.com/javascript/#modals-sizes)
@@ -255,8 +226,6 @@ export default class Modal extends Component {
    * @type String
    * @public
    */
-  @defaultValue
-  size = null;
 
   /**
    * If true clicking on the backdrop will close the modal.
@@ -266,7 +235,7 @@ export default class Modal extends Component {
    * @default true
    * @public
    */
-  @defaultValue
+  @arg
   backdropClose = true;
 
   /**
@@ -277,7 +246,7 @@ export default class Modal extends Component {
    * @default false
    * @public
    */
-  @defaultValue
+  @arg
   renderInPlace = false;
 
   /**
@@ -285,7 +254,6 @@ export default class Modal extends Component {
    * @type boolean
    * @private
    */
-  @computed('renderInPlace', 'destinationElement')
   get _renderInPlace() {
     return this.renderInPlace || !this.destinationElement;
   }
@@ -298,7 +266,7 @@ export default class Modal extends Component {
    * @default 300
    * @public
    */
-  @defaultValue
+  @arg
   transitionDuration = 300;
 
   /**
@@ -309,7 +277,7 @@ export default class Modal extends Component {
    * @default 150
    * @public
    */
-  @defaultValue
+  @arg
   backdropTransitionDuration = 150;
 
   /**
@@ -323,29 +291,34 @@ export default class Modal extends Component {
   @usesTransition('_fade')
   usesTransition;
 
+  destinationElement = getDestinationElement(this);
+
   /**
    * The DOM element of the `.modal` element.
    *
    * @property modalElement
-   * @type object
+   * @type HTMLElement
    * @readonly
    * @private
    */
-  get modalElement() {
-    return document.getElementById(this.modalId);
-  }
+  @ref('modalElement') modalElement;
 
   /**
    * The DOM element of the backdrop element.
    *
    * @property backdropElement
-   * @type object
+   * @type HTMLElement
    * @readonly
    * @private
    */
-  get backdropElement() {
-    return document.getElementById(this.backdropId);
-  }
+  @ref('backdropElement') backdropElement;
+
+  /**
+   * @type boolean
+   * @readonly
+   * @private
+   */
+  isFastBoot = isFastBoot(this);
 
   /**
    * The action to be sent when the modal footer's submit button (if present) is pressed.
@@ -357,7 +330,6 @@ export default class Modal extends Component {
    * @type function
    * @public
    */
-  onSubmit() {}
 
   /**
    * The action to be sent when the modal is closing.
@@ -372,7 +344,6 @@ export default class Modal extends Component {
    * @type function
    * @public
    */
-  onHide() {}
 
   /**
    * The action to be sent after the modal has been completely hidden (including the CSS transition).
@@ -382,7 +353,6 @@ export default class Modal extends Component {
    * @default null
    * @public
    */
-  onHidden() {}
 
   /**
    * The action to be sent when the modal is opening.
@@ -395,7 +365,6 @@ export default class Modal extends Component {
    * @default null
    * @public
    */
-  onShow() {}
 
   /**
    * The action to be sent after the modal has been completely shown (including the CSS transition).
@@ -404,20 +373,17 @@ export default class Modal extends Component {
    * @type function
    * @public
    */
-  onShown() {}
 
   @action
   close() {
-    if (this.onHide() !== false) {
-      this.set('isOpen', false);
+    if (this.args.onHide?.() !== false) {
+      this.hide();
     }
   }
 
   @action
   doSubmit() {
-    // replace modalId by :scope selector if supported by all target browsers
-    let modalId = this.modalId;
-    let forms = this.modalElement.querySelectorAll(`#${modalId} .modal-body form`);
+    let forms = this.modalElement.querySelectorAll('.modal-body form');
     if (forms.length > 0) {
       // trigger submit event on body forms
       let event = document.createEvent('Events');
@@ -425,7 +391,7 @@ export default class Modal extends Component {
       Array.prototype.slice.call(forms).forEach((form) => form.dispatchEvent(event));
     } else {
       // if we have no form, we send a submit action
-      this.onSubmit();
+      this.args.onSubmit?.();
     }
   }
 
@@ -435,47 +401,47 @@ export default class Modal extends Component {
    * @method show
    * @private
    */
-  show() {
+  async show() {
     if (this._isOpen) {
       return;
     }
     this._isOpen = true;
 
     this.addBodyClass();
-    this.resize();
 
-    let callback = () => {
-      if (this.isDestroyed) {
-        return;
-      }
+    this.inDom = true;
 
+    await this.showBackdrop();
+
+    if (this.isDestroyed) {
+      return;
+    }
+
+    if (!isFastBoot(this)) {
       this.checkScrollbar();
       this.setScrollbar();
-
-      schedule('afterRender', () => {
-        let modalEl = this.modalElement;
-        if (!modalEl) {
-          return;
-        }
-
-        modalEl.scrollTop = 0;
-        this.handleUpdate();
-        this.set('showModal', true);
-        this.onShow();
-
-        if (this.usesTransition) {
-          transitionEnd(this.modalElement, this.transitionDuration).then(() => {
-            this.onShown();
-          });
-        } else {
-          this.onShown();
-        }
-      });
-    };
-    if (this.inDom !== true) {
-      this.set('inDom', true);
     }
-    this.handleBackdrop(callback);
+
+    await afterRender();
+
+    const { modalElement } = this;
+    if (!modalElement) {
+      return;
+    }
+
+    if (!isFastBoot(this)) {
+      modalElement.scrollTop = 0;
+      this.adjustDialog();
+    }
+
+    this.showModal = true;
+    this.args.onShow?.();
+
+    if (this.usesTransition) {
+      await transitionEnd(modalElement, this.transitionDuration);
+    }
+
+    this.args.onShown?.();
   }
 
   /**
@@ -484,20 +450,19 @@ export default class Modal extends Component {
    * @method hide
    * @private
    */
-  hide() {
+  async hide() {
     if (!this._isOpen) {
       return;
     }
     this._isOpen = false;
 
-    this.resize();
-    this.set('showModal', false);
+    this.showModal = false;
 
     if (this.usesTransition) {
-      transitionEnd(this.modalElement, this.transitionDuration).then(() => this.hideModal());
-    } else {
-      this.hideModal();
+      await transitionEnd(this.modalElement, this.transitionDuration);
     }
+
+    await this.hideModal();
   }
 
   /**
@@ -506,102 +471,81 @@ export default class Modal extends Component {
    * @method hideModal
    * @private
    */
-  hideModal() {
+  async hideModal() {
     if (this.isDestroyed) {
       return;
     }
 
-    this.handleBackdrop(() => {
-      this.removeBodyClass();
+    await this.hideBackdrop();
+
+    this.removeBodyClass();
+
+    if (!isFastBoot(this)) {
       this.resetAdjustments();
       this.resetScrollbar();
-      this.set('inDom', false);
-      this.onHidden();
-    });
-  }
-
-  /**
-   * SHow/hide the backdrop
-   *
-   * @method handleBackdrop
-   * @param callback
-   * @private
-   */
-  handleBackdrop(callback) {
-    let doAnimate = this.usesTransition;
-
-    if (this.isOpen && this.backdrop) {
-      this.set('showBackdrop', true);
-
-      if (!callback) {
-        return;
-      }
-
-      schedule('afterRender', this, function () {
-        let backdrop = this.backdropElement;
-        assert('Backdrop element should be in DOM', backdrop);
-        if (doAnimate) {
-          transitionEnd(backdrop, this.backdropTransitionDuration).then(callback);
-        } else {
-          callback();
-        }
-      });
-    } else if (!this.isOpen && this.backdrop) {
-      let backdrop = this.backdropElement;
-      assert('Backdrop element should be in DOM', backdrop);
-
-      let callbackRemove = () => {
-        if (this.isDestroyed) {
-          return;
-        }
-        this.set('showBackdrop', false);
-        if (callback) {
-          callback.call(this);
-        }
-      };
-      if (doAnimate) {
-        transitionEnd(backdrop, this.backdropTransitionDuration).then(callbackRemove);
-      } else {
-        callbackRemove();
-      }
-    } else if (callback) {
-      next(this, callback);
     }
+
+    this.inDom = false;
+    this.args.onHidden?.();
   }
 
   /**
-   * Attach/Detach resize event listeners
+   * Show the backdrop
    *
-   * @method resize
+   * @method showBackdrop
+   * @async
    * @private
    */
-  resize() {
-    if (this.isOpen) {
-      this._handleUpdate = bind(this, this.handleUpdate);
-      window.addEventListener('resize', this._handleUpdate, false);
-    } else {
-      window.removeEventListener('resize', this._handleUpdate, false);
+  async showBackdrop() {
+    if (!this.backdrop || !this.usesTransition) {
+      return;
     }
+
+    this.shouldShowBackdrop = true;
+
+    await nextRunloop();
+
+    const { backdropElement } = this;
+    assert('Backdrop element should be in DOM', backdropElement);
+
+    await transitionEnd(backdropElement, this.backdropTransitionDuration);
   }
 
   /**
-   * @method handleUpdate
+   * Hide the backdrop
+   *
+   * @method hideBackdrop
+   * @async
    * @private
    */
-  handleUpdate() {
-    this.adjustDialog();
+  async hideBackdrop() {
+    if (!this.backdrop) {
+      return;
+    }
+
+    if (this.usesTransition) {
+      const { backdropElement } = this;
+      assert('Backdrop element should be in DOM', backdropElement);
+
+      await transitionEnd(backdropElement, this.backdropTransitionDuration);
+    }
+
+    if (this.isDestroyed) {
+      return;
+    }
+
+    this.shouldShowBackdrop = false;
   }
 
   /**
    * @method adjustDialog
    * @private
    */
+  @action
   adjustDialog() {
     let modalIsOverflowing = this.modalElement.scrollHeight > document.documentElement.clientHeight;
-    this.setProperties({
-      paddingLeft: !this.bodyIsOverflowing && modalIsOverflowing ? this.scrollbarWidth : undefined,
-      paddingRight: this.bodyIsOverflowing && !modalIsOverflowing ? this.scrollbarWidth : undefined,
-    });
+    this.paddingLeft = !this.bodyIsOverflowing && modalIsOverflowing ? this.scrollbarWidth : undefined;
+    this.paddingRight = this.bodyIsOverflowing && !modalIsOverflowing ? this.scrollbarWidth : undefined;
   }
 
   /**
@@ -609,10 +553,8 @@ export default class Modal extends Component {
    * @private
    */
   resetAdjustments() {
-    this.setProperties({
-      paddingLeft: undefined,
-      paddingRight: undefined,
-    });
+    this.paddingLeft = undefined;
+    this.paddingRight = undefined;
   }
 
   /**
@@ -620,13 +562,7 @@ export default class Modal extends Component {
    * @private
    */
   checkScrollbar() {
-    let fullWindowWidth = window.innerWidth;
-    if (!fullWindowWidth) {
-      // workaround for missing window.innerWidth in IE8
-      let documentElementRect = document.documentElement.getBoundingClientRect();
-      fullWindowWidth = documentElementRect.right - Math.abs(documentElementRect.left);
-    }
-
+    const fullWindowWidth = window.innerWidth;
     this.bodyIsOverflowing = document.body.clientWidth < fullWindowWidth;
   }
 
@@ -666,7 +602,11 @@ export default class Modal extends Component {
   }
 
   removeBodyClass() {
-    // no need for FastBoot support here
+    if (isFastBoot(this)) {
+      // no need for FastBoot support here
+      return;
+    }
+
     document.body.classList.remove('modal-open');
   }
 
@@ -687,54 +627,22 @@ export default class Modal extends Component {
     return scrollbarWidth;
   }
 
-  didInsertElement() {
-    super.didInsertElement(...arguments);
-    if (this.isOpen) {
-      this.show();
-    }
-  }
+  willDestroy() {
+    super.willDestroy(...arguments);
 
-  willDestroyElement() {
-    super.willDestroyElement(...arguments);
-    window.removeEventListener('resize', this._handleUpdate, false);
     this.removeBodyClass();
-    this.resetScrollbar();
-  }
 
-  didReceiveAttrs() {
-    super.didReceiveAttrs(...arguments);
-
-    // add `.modal-open` to <body> even in FastBoot, to allow scrolling
-    if (this.isOpen) {
-      // a SimpleDOM instance with just a subset of the DOM API!
-      let document = this.document;
-
-      let existingClasses = document.body.getAttribute('class') || '';
-      if (!existingClasses.includes('modal-open')) {
-        document.body.setAttribute('class', `modal-open ${existingClasses}`);
-      }
+    if (!isFastBoot(this)) {
+      this.resetScrollbar();
     }
   }
 
-  _observeOpen() {
-    if (this.isOpen) {
+  @action
+  handleVisibilityChanges() {
+    if (this.args.open !== false) {
       this.show();
     } else {
       this.hide();
     }
-  }
-
-  init() {
-    super.init(...arguments);
-    let { isOpen, backdrop, _fade: fade } = this;
-    let isFB = isFastBoot(this);
-    this.setProperties({
-      showModal: isOpen && (!fade || isFB),
-      showBackdrop: isOpen && backdrop,
-      inDom: isOpen,
-      destinationElement: getDestinationElement(this),
-    });
-
-    addObserver(this, 'isOpen', null, this._observeOpen, true);
   }
 }

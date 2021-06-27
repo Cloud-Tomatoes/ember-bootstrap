@@ -144,8 +144,10 @@ export default class Form extends Component {
     let layout = this.formLayout;
     if (macroCondition(getOwnConfig().isBS3)) {
       return layout === 'vertical' ? 'form' : `form-${layout}`;
-    } else {
+    } else if (macroCondition(getOwnConfig().isBS4)) {
       return layout === 'inline' ? 'form-inline' : null;
+    } else {
+      return null;
     }
   }
 
@@ -212,8 +214,6 @@ export default class Form extends Component {
    * @type {String}
    * @private
    */
-  @defaultValue
-  submitButtonComponent = 'bs-button';
 
   /**
    * `isSubmitting` is `true` after `submit` event has been triggered and until Promise returned by `onSubmit` is

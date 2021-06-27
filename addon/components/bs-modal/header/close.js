@@ -1,26 +1,14 @@
-import { action } from '@ember/object';
-import { tagName } from '@ember-decorators/component';
-import Component from '@ember/component';
-import deprecateSubclassing from 'ember-bootstrap/utils/deprecate-subclassing';
-
 /**
 
  @class ModalHeaderClose
  @namespace Components
- @extends Ember.Component
+ @extends Glimmer.Component
  @private
  */
-@tagName('')
-@deprecateSubclassing
-export default class ModalHeaderClose extends Component {
-  /**
-   * @event onClick
-   * @public
-   */
-  onClick() {}
 
-  @action
-  handleClick() {
-    this.onClick();
-  }
-}
+/**
+ * @event onClick
+ * @public
+ */
+import templateOnly from '@ember/component/template-only';
+export default templateOnly();

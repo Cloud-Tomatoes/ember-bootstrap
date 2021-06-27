@@ -2,7 +2,13 @@ import { module, skip } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import { render, click, triggerEvent, settled } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
-import { test, versionDependent, visibilityClass, popoverPositionClass } from '../../helpers/bootstrap';
+import {
+  test,
+  versionDependent,
+  visibilityClass,
+  popoverPositionClass,
+  popoverArrowClass,
+} from '../../helpers/bootstrap';
 import { setupForPositioning, assertPositioning } from '../../helpers/contextual-help';
 import setupStylesheetSupport from '../../helpers/setup-stylesheet-support';
 import setupNoDeprecations from '../../helpers/setup-no-deprecations';
@@ -28,7 +34,7 @@ module('Integration | Component | bs-popover', function (hooks) {
     assert.dom('.popover').hasClass('fade', 'has fade class');
     assert.dom('.popover').hasClass(visibilityClass(), 'has visibility class');
     assert.equal(this.element.querySelector('.popover').getAttribute('role'), 'tooltip', 'has ARIA role');
-    assert.dom('.arrow').exists({ count: 1 }, 'has arrow');
+    assert.dom(`.${popoverArrowClass()}`).exists({ count: 1 }, 'has arrow');
     assert.dom(versionDependent('.popover-title', '.popover-header')).hasText('dummy title', 'shows title');
     assert.dom(versionDependent('.popover-content', '.popover-body')).hasText('template block text', 'shows content');
   });
@@ -40,7 +46,7 @@ module('Integration | Component | bs-popover', function (hooks) {
     this.set('placement', placements[0]);
     await render(hbs`
       <div id="wrapper">
-        <BsPopover::Element @id="popover-element" @placement={{placement}} @title="dummy title">
+        <BsPopover::Element @id="popover-element" @placement={{this.placement}} @title="dummy title">
           template block text
         </BsPopover::Element>
       </div>
@@ -69,19 +75,20 @@ module('Integration | Component | bs-popover', function (hooks) {
     setupForPositioning();
 
     await click('#target');
-    assertPositioning(assert, '.popover');
+    assertPositioning(assert, '.popover', versionDependent(0, 0, 8));
   });
 
   test('should adjust popover arrow', async function (assert) {
     this.insertCSSRule('#wrapper p { margin-top: 200px }');
+    this.insertCSSRule('#target { width: 100px; padding: 0; border: none; }');
 
-    let expectedArrowPosition = versionDependent(225, 219);
+    let expectedArrowPosition = versionDependent(214, 213, 217);
 
     await render(hbs`
       <div id="ember-bootstrap-wormhole"></div>
       <div id="wrapper">
         <p>
-          <button type="button" class="btn" id="target">
+          <button type="button" id="target">
             Click me<BsPopover @placement="top" @autoPlacement={{true}} @viewportSelector="#wrapper" @title="very very very very very very very long popover" @fade={{false}}>very very very very very very very long popover</BsPopover>
           </button>
         </p>
@@ -90,7 +97,7 @@ module('Integration | Component | bs-popover', function (hooks) {
     setupForPositioning('right');
 
     await click('#target');
-    let arrowPosition = parseInt(this.element.querySelector('.arrow').style.left, 10);
+    let arrowPosition = parseInt(this.element.querySelector(`.${popoverArrowClass()}`).style.left, 10);
     assert.ok(
       Math.abs(arrowPosition - expectedArrowPosition) <= 2,
       `Expected position: ${expectedArrowPosition}, actual: ${arrowPosition}`
@@ -99,7 +106,7 @@ module('Integration | Component | bs-popover', function (hooks) {
     // check again to prevent regression of https://github.com/kaliber5/ember-bootstrap/issues/361
     await click('#target');
     await click('#target');
-    arrowPosition = parseInt(this.element.querySelector('.arrow').style.left, 10);
+    arrowPosition = parseInt(this.element.querySelector(`.${popoverArrowClass()}`).style.left, 10);
     assert.ok(
       Math.abs(arrowPosition - expectedArrowPosition) <= 2,
       `Expected position: ${expectedArrowPosition}, actual: ${arrowPosition}`
@@ -128,7 +135,7 @@ module('Integration | Component | bs-popover', function (hooks) {
     this.set('hidden', hiddenAction);
     await render(hbs`
       <div id="target">
-        <BsPopover @visible={{true}} @onHide={{action hide}} @onHidden={{action hidden}} as |po|>
+        <BsPopover @visible={{true}} @onHide={{action this.hide}} @onHidden={{action this.hidden}} as |po|>
           <div id="hide" {{action po.close}} role="button">Hide</div>
         </BsPopover>
       </div>
@@ -213,7 +220,7 @@ module('Integration | Component | bs-popover', function (hooks) {
   test("Renders in wormhole's default destination if renderInPlace is not set", async function (assert) {
     this.set('show', false);
     await render(
-      hbs`<div id="ember-bootstrap-wormhole"></div>{{#if show}}<BsPopover @title="Simple popover" @visible={{true}} @fade={{false}} />{{/if}}`
+      hbs`<div id="ember-bootstrap-wormhole"></div>{{#if this.show}}<BsPopover @title="Simple popover" @visible={{true}} @fade={{false}} />{{/if}}`
     );
     this.set('show', true);
     await settled();
@@ -223,7 +230,7 @@ module('Integration | Component | bs-popover', function (hooks) {
 
   test('Renders in test container if renderInPlace is not set', async function (assert) {
     this.set('show', false);
-    await render(hbs`{{#if show}}<BsPopover @title="Simple popover" @visible={{true}} @fade={{false}} />{{/if}}`);
+    await render(hbs`{{#if this.show}}<BsPopover @title="Simple popover" @visible={{true}} @fade={{false}} />{{/if}}`);
     this.set('show', true);
     await settled();
 
@@ -234,7 +241,7 @@ module('Integration | Component | bs-popover', function (hooks) {
   test('Renders in place (no wormhole) if renderInPlace is set', async function (assert) {
     this.set('show', false);
     await render(
-      hbs`<div id="ember-bootstrap-wormhole"></div><div id="wrapper">{{#if show}}<BsPopover @title="Simple popover" @visible={{true}} @fade={{false}} @renderInPlace={{true}} />{{/if}}</div>`
+      hbs`<div id="ember-bootstrap-wormhole"></div><div id="wrapper">{{#if this.show}}<BsPopover @title="Simple popover" @visible={{true}} @fade={{false}} @renderInPlace={{true}} />{{/if}}</div>`
     );
     this.set('show', true);
     await settled();

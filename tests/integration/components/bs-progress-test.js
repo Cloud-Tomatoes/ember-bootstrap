@@ -1,7 +1,7 @@
 import { module } from 'qunit';
 import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
-import { test, testBS3, testBS4 } from '../../helpers/bootstrap';
+import { test, testBS3, testNotBS3, visuallyHiddenClass } from '../../helpers/bootstrap';
 import hbs from 'htmlbars-inline-precompile';
 import setupStylesheetSupport from '../../helpers/setup-stylesheet-support';
 import setupNoDeprecations from '../../helpers/setup-no-deprecations';
@@ -56,7 +56,7 @@ module('Integration | Component | bs-progress', function (hooks) {
     await render(hbs`
       <div class="width-500">
         <BsProgress as |p|>
-          <p.bar @value={{value}} @minValue={{minValue}} @maxValue={{maxValue}} />
+          <p.bar @value={{this.value}} @minValue={{this.minValue}} @maxValue={{this.maxValue}} />
         </BsProgress>
       </div>
     `);
@@ -85,7 +85,7 @@ module('Integration | Component | bs-progress', function (hooks) {
     `);
 
     assert.equal(
-      this.element.querySelector('.progress-bar .sr-only').innerHTML.trim(),
+      this.element.querySelector(`.progress-bar .${visuallyHiddenClass()}`).innerHTML.trim(),
       '50%',
       'Progress bar shows correct default label'
     );
@@ -97,7 +97,7 @@ module('Integration | Component | bs-progress', function (hooks) {
     `);
 
     assert.equal(
-      this.element.querySelector('.progress-bar .sr-only').innerHTML.trim(),
+      this.element.querySelector(`.progress-bar .${visuallyHiddenClass()}`).innerHTML.trim(),
       '5 (50%)',
       'Progress bar shows correct custom label'
     );
@@ -153,7 +153,7 @@ module('Integration | Component | bs-progress', function (hooks) {
     assert.dom('.progress-bar').hasClass('progress-bar-success', 'Progress bar has type class');
   });
 
-  testBS4('progress bar supports type class', async function (assert) {
+  testNotBS3('progress bar supports type class', async function (assert) {
     await render(hbs`
       <BsProgress as |p|>
         <p.bar @value={{50}} @type="success" />
@@ -184,7 +184,7 @@ module('Integration | Component | bs-progress', function (hooks) {
     assert.dom('.progress-bar').hasClass('active', 'Progress bar has active class');
   });
 
-  testBS4('progress bar supports animated stripes', async function (assert) {
+  testNotBS3('progress bar supports animated stripes', async function (assert) {
     await render(hbs`
       <BsProgress as |p|>
         <p.bar @value={{50}} @type="success" @striped={{true}} @animate={{true}} />
@@ -214,7 +214,14 @@ module('Integration | Component | bs-progress', function (hooks) {
       <button type="button">Test</button>
     `);
 
-    await a11yAudit();
+    await a11yAudit({
+      rules: {
+        // @todo fix this, see https://github.com/kaliber5/ember-bootstrap/issues/1520
+        'aria-progressbar-name': {
+          enabled: false,
+        },
+      },
+    });
     assert.ok(true, 'A11y audit passed');
   });
 });

@@ -9,7 +9,13 @@ import FormGroup from 'ember-bootstrap/components/bs-form/group';
 import { getOwnConfig, macroCondition } from '@embroider/macros';
 import { guidFor } from '@ember/object/internals';
 import { ref } from 'ember-ref-bucket';
+import ControlInput from './element/control/input';
+import ControlCheckbox from './element/control/checkbox';
+import ControlTextarea from './element/control/textarea';
+import ControlRadio from './element/control/radio';
+import ControlSwitch from './element/control/switch';
 import arg from 'ember-bootstrap/utils/decorators/arg';
+import { dedupeTracked } from 'tracked-toolbox';
 
 /**
   Sub class of `Components.FormGroup` that adds automatic form layout markup and form validation features.
@@ -36,6 +42,7 @@ import arg from 'ember-bootstrap/utils/decorators/arg';
   * Checkbox (single)
   * Radio Button (group)
   * Textarea
+  * Switch (BS4 Only)
 
   #### Radio Buttons
 
@@ -230,6 +237,7 @@ export default class FormElement extends FormGroup {
    * * 'text'
    * * 'checkbox'
    * * 'radio'
+   * * 'switch'
    * * 'textarea'
    * * any other type will use an input tag with the `controlType` value as the type attribute (for e.g. HTML5 input
    * types like 'email'), and the same layout as the 'text' type
@@ -258,24 +266,17 @@ export default class FormElement extends FormGroup {
    * @public
    */
   get value() {
+    assert(
+      'You can not set both property and value on a form element',
+      isBlank(this.args.property) || isBlank(this.args.value)
+    );
+
     if (this.args.property && this.args.model) {
       return get(this.args.model, this.args.property);
     }
-    return this._value;
+
+    return this.args.value;
   }
-
-  set value(value) {
-    assert('You cannot set both property and value on a form element', isBlank(this.args.property));
-
-    this._value = value;
-  }
-
-  /**
-   * Cache for value
-   * @type {null}
-   * @private
-   */
-  @tracked _value = null;
 
   /**
    The property name of the form element's `model` (by default the `model` of its parent `Components.Form`) that this
@@ -498,7 +499,7 @@ export default class FormElement extends FormGroup {
    * @default false
    * @private
    */
-  @tracked showOwnValidation = false;
+  @dedupeTracked showOwnValidation = false;
 
   /**
    * @property showAllValidations
@@ -586,8 +587,6 @@ export default class FormElement extends FormGroup {
   showValidationOnHandler({ target, type }) {
     // Should not do anything if
     if (
-      // validations are already shown or
-      this.showOwnValidation ||
       // validations should not be shown for this event type or
       this._showValidationOn.indexOf(type) === -1 ||
       // validation should not be shown for this event target
@@ -721,19 +720,28 @@ export default class FormElement extends FormGroup {
    */
 
   /**
-   * @property customControlComponent
-   * @type {String}
+   * @property controlComponent
    * @private
    */
-  get customControlComponent() {
-    const controlType = this.controlType;
-    const componentName = `bs-form/element/control/${controlType}`;
+  get controlComponent() {
+    let owner = getOwner(this);
+    let componentClass = owner.resolveRegistration(`component:bs-form/element/control/${this.controlType}`);
 
-    if (getOwner(this).hasRegistration(`component:${componentName}`)) {
-      return componentName;
+    if (componentClass) {
+      return componentClass;
     }
 
-    return null;
+    if (this.controlType === 'checkbox') {
+      return ControlCheckbox;
+    } else if (this.controlType === 'textarea') {
+      return ControlTextarea;
+    } else if (this.controlType === 'radio') {
+      return ControlRadio;
+    } else if (this.controlType === 'switch') {
+      return ControlSwitch;
+    } else {
+      return ControlInput;
+    }
   }
 
   /**
